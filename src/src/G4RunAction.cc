@@ -6,8 +6,9 @@
 #include "G4Run.hh"
 #include "G4RunManager.hh"
 #include "G4EventManager.hh"
-#include "g4root.hh"
-
+#include "G4RootAnalysisManager.hh"
+#include "G4Analyser.hh"
+#include "G4AnalysisManager.hh"
 #include <fstream>
 
 // #include "G4NeutronHPManager.hh"
@@ -16,7 +17,8 @@ using namespace std;
 
 //================================================================================
 
-G4RunAction::G4RunAction() {
+G4RunAction::G4RunAction(const DetectorConfig& config) : G4UserRunAction(), fConfig(config) {
+
     
     timer = new G4Timer;
     nOfReflections_Total = 0;
@@ -41,12 +43,12 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
 
     G4cout << "### Run " << aRun->GetRunID() << " start." << G4endl;
 
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    auto analysisManager = G4AnalysisManager::Instance();
     
     G4cout << "Using " << analysisManager->GetType() << " analysis manager." << G4endl;
     timer->Start();
-
-    analysisManager->OpenFile("OutPut");
+    analysisManager->SetDefaultFileType("root");
+    analysisManager->OpenFile("Mu_1");
     analysisManager->SetVerboseLevel(0);
 
 
@@ -57,19 +59,31 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
 
 
     // Indica o id da primeira ntuple criada -- default = 0
-    analysisManager->SetFirstNtupleId(1);
+    //analysisManager->SetFirstNtupleId(1);
     //Declara ntuples
+    analysisManager->CreateNtuple("PixelEDep", "Energy per pixel");
+    analysisManager->CreateNtupleIColumn("EventID");     // Column 0
+    analysisManager->CreateNtupleIColumn("PixelID");     // Column 1
+    analysisManager->CreateNtupleDColumn("EnergyDep");   // Column 2 (MeV)
+    analysisManager->FinishNtuple();
+
+
     analysisManager->CreateNtuple("ntuple", "data");
     analysisManager->CreateNtupleIColumn("evt");
     analysisManager->CreateNtupleDColumn("x");
     analysisManager->CreateNtupleDColumn("y");
     analysisManager->CreateNtupleDColumn("z");
     analysisManager->CreateNtupleDColumn("t");
-    analysisManager->CreateNtupleDColumn("energy");
+    analysisManager->CreateNtupleDColumn("dedx");
     analysisManager->CreateNtupleDColumn("theta");
     analysisManager->CreateNtupleDColumn("dx");
     analysisManager->CreateNtupleDColumn("dy");
     analysisManager->CreateNtupleDColumn("dz");
+    analysisManager->CreateNtupleDColumn("momentum");
+   // analysisManager->CreateNtupleIColumn("copyno");
+   // analysisManager->CreateNtupleDColumn("accumlated_en");
+
+
     analysisManager->FinishNtuple();
 }
 
@@ -79,12 +93,12 @@ void G4RunAction::EndOfRunAction(const G4Run* aRun) {
     G4cout << "End of run." << G4endl;
     timer->Stop();
 
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    auto analysisManager = G4AnalysisManager::Instance();
     analysisManager->Write();
     analysisManager->CloseFile();
 
-    delete G4AnalysisManager::Instance();
-        
+    //delete G4AnalysisManager::Instance();
+    //analysisManager->Clear();    
 }
 
 //================================================================================

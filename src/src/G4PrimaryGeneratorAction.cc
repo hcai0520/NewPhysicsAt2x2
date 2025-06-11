@@ -8,8 +8,9 @@
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
 
+#include "G4RandomTools.hh"
 #include "G4SystemOfUnits.hh"
-
+#include <cmath>  
 // ============================================================================
 
 G4PrimaryGeneratorAction::G4PrimaryGeneratorAction()
@@ -38,30 +39,22 @@ void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     
     static const double pi  = 3.14159265358979323846;
 
-    particleGun->SetParticleEnergy(1*GeV);
-    
-    particleGun->SetParticleMomentumDirection(G4ThreeVector(0,0,-1));
-    particleGun->SetParticlePosition(G4ThreeVector(7.5*cm,7.5*cm,0.8*m));
+    // Define energy range (in MeV)
+    //G4double E_min = 50.*MeV;
+    //G4double E_max = 1000.*MeV;
 
-    G4ParticleDefinition* particle=  G4ParticleTable::GetParticleTable()->FindParticle("mu-");
+    // Sample energy uniformly in range
+    //G4double kineticEnergy = E_min + G4UniformRand() * (E_max - E_min);
 
-    particleGun->SetParticleDefinition(particle);
-    // particleGun->SetParticleTime(0.0*ns);
+
+    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("mu+");
+    particleGun->SetParticleDefinition(mcp);
+    particleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., 1.));
+    particleGun->SetParticleEnergy(2.1 * GeV);
+    particleGun->SetParticlePosition(G4ThreeVector(0*cm,0*cm,-1*m));
+
     particleGun->GeneratePrimaryVertex(anEvent);
-
-// // teste com múons
-
-//     particleGun->SetParticleEnergy(40.0*GeV);
-
-
-//     particleGun->SetParticleMomentumDirection(G4ThreeVector(-1,0,0));
-//     particleGun->SetParticlePosition(G4ThreeVector(100*mm,0*mm,0*mm));
-
-//     G4ParticleDefinition* particle=  G4ParticleTable::GetParticleTable()->FindParticle("mu+");
-
-//     particleGun->SetParticleDefinition(particle);
-//     // particleGun->SetParticleTime(0.0*ns);
-//     particleGun->GeneratePrimaryVertex(anEvent);
+    
 
     flag_alpha = true;   
     
@@ -101,4 +94,4 @@ void G4PrimaryGeneratorAction::SetOptPhotonPolar(G4double angle) {
     
 }
 
-// ============================================================================
+// ========================================================================

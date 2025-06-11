@@ -40,28 +40,29 @@
     #include <fstream>
     using namespace std;
 
-    #include "G4NeutronHPManager.hh"
+    #include "G4NeutronHPBuilder.hh"
     #include <G4HadronicProcessStore.hh>
-    
+    #include "G4UserLimits.hh"
     //================================================================================
 
-    G4DetectorConstruction::G4DetectorConstruction (G4double RIndex)
-    : G4VUserDetectorConstruction(), fCheckOverlaps(true), Refr_Index(RIndex) {
+    G4DetectorConstruction::G4DetectorConstruction (G4double RIndex, DetectorConfig& GeoConf)
+    : G4VUserDetectorConstruction(), fCheckOverlaps(true), Refr_Index(RIndex), fConfig(GeoConf) {
 
-        G4NeutronHPManager::GetInstance()->SetVerboseLevel(0);
+        //G4NeutronHPManager::GetInstance()->SetVerboseLevel(0);
         G4HadronicProcessStore::Instance()->SetVerbose(0);
         // World
         world_x = 100 * cm * 0.5;
-        world_y = 100 * cm * 0.5;
-        world_z = 200 * cm * 0.5;
+        world_y = 200 * cm * 0.5;
+        world_z = 100 * cm * 0.5;
+        //total size of the volume
+        VLAr_x =  GeoConf.sizeX * cm * 0.5;
+        VLAr_y =  GeoConf.sizeY * cm * 0.5;
+        VLAr_z =  GeoConf.sizeZ * cm * 0.5;
+        //height of one detector pixel
+        Pixel_x =  GeoConf.sizeX * cm * 0.5;
+        Pixel_y =  GeoConf.pixelSizeY * cm * 0.5;
+        Pixel_z =  GeoConf.pixelSizeZ * cm * 0.5;
 
-        VLAr_x =  50 * cm * 0.5;
-        VLAr_y =  50 * cm * 0.5;
-        VLAr_z = 100 * cm * 0.5;
-        
-        Pixel_x =  50 * cm * 0.5;
-        Pixel_y =  10 * cm * 0.5;
-        Pixel_z =  10 * cm * 0.5;
 
     }
 
@@ -76,11 +77,14 @@
     public:
         Full3DParameterisation(G4int nY, G4int nZ, G4double pitchY, G4double pitchZ)
             : fNY(nY), fNZ(nZ), fPitchY(pitchY), fPitchZ(pitchZ) {}
-
+        //initialized with nY,nZ ,pitchY and pitchZ
         void ComputeTransformation(G4int copyNo, G4VPhysicalVolume* physVol) const override {
+        //create a 2d array with fnY rows and fnZ columns    
             G4int iz = copyNo / fNY;
             G4int iy = copyNo % fNY;
-
+        //center a grid arouind center
+        //place each volume at its center
+        //maintain consistent spacing
             G4double y = (-fNY/2.0 + iy + 0.5) * fPitchY;
             // G4double z = (-fNZ/2.0 + iz + 0.5) * fPitchZ;
             G4double z = (-fNZ/2.0 + iz + 0.5) * fPitchZ;
@@ -130,8 +134,8 @@
     G4VPhysicalVolume* G4DetectorConstruction::DefineVolumes() {
         // Get materials
        
-        G4Material* Vacuo   = G4Material::GetMaterial("G4_Galactic");       
-        G4Material* LAr     = G4Material::GetMaterial("G4_lAr");
+        G4Material* Vacuo      = G4Material::GetMaterial("G4_Galactic");       
+        G4Material* LAr        = G4Material::GetMaterial("G4_lAr");
         G4Material* HighSP     = G4Material::GetMaterial("G4_URANIUM_MONOCARBIDE");
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Construction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -147,7 +151,7 @@
     //======================= Parametric volumes =======================
 
     // Mother volume for stack
-    auto motherSolid = new G4Box("Mother", VLAr_x*cm, VLAr_y*cm, VLAr_z*cm);
+    auto motherSolid = new G4Box("Mother", VLAr_x, VLAr_y, VLAr_z);
     auto motherLogic = new G4LogicalVolume(motherSolid, Vacuo, "Mother");
     new G4PVPlacement(0, {}, motherLogic, "Mother", WorldLV, false, 0);
 
@@ -156,18 +160,21 @@
     auto sliceSolid = new G4Box("Slice", Pixel_x, Pixel_y, Pixel_z);
     auto sliceLogic = new G4LogicalVolume(sliceSolid, LAr, "Slice");
 
+    //G4UserLimits* limits = new G4UserLimits(.1*cm);
+    //sliceLogic->SetUserLimits(limits);
 
     G4int nY = VLAr_y/Pixel_y;
     G4int nZ = VLAr_z/Pixel_z;
-    G4int nTotal = nY * nZ;
+    G4int nTotal = nY * nZ;//copy number from 0 to fnY*fnZ - 1
 
     new G4PVParameterised("Prisms",
-                          sliceLogic,
-                          motherLogic,
+                          sliceLogic,//a pixel shape
+                          motherLogic,// the logic volume that contains all the copies
                           kUndefined,  // Not tied to a single axis
-                          nTotal,
-                          new Full3DParameterisation(nY, nZ, Pixel_y, Pixel_z));
-
+                          nTotal,//total number of copies
+                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
+    //using G4PVParameterised → a special mechanism in Geant4 to replicate volumes.
+    //Geant4 must know where to place each copy, so it calls your ComputeTransformation(copyNo, physVol) method for each copy.
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTIES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
