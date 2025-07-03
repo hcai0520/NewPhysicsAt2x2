@@ -14,8 +14,9 @@ class G4DetectorConstruction : public G4VUserDetectorConstruction
 
   public:
     virtual G4VPhysicalVolume* Construct();
-
-    private:
+  
+  
+  private:
     // methods
     //
     void DefineMaterials();

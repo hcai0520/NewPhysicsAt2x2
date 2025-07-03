@@ -48,7 +48,7 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     G4cout << "Using " << analysisManager->GetType() << " analysis manager." << G4endl;
     timer->Start();
     analysisManager->SetDefaultFileType("root");
-    analysisManager->OpenFile("Mu_1");
+    analysisManager->OpenFile("MCP_01");
     analysisManager->SetVerboseLevel(0);
 
 
@@ -62,9 +62,12 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     //analysisManager->SetFirstNtupleId(1);
     //Declara ntuples
     analysisManager->CreateNtuple("PixelEDep", "Energy per pixel");
-    analysisManager->CreateNtupleIColumn("EventID");     // Column 0
-    analysisManager->CreateNtupleIColumn("PixelID");     // Column 1
-    analysisManager->CreateNtupleDColumn("EnergyDep");   // Column 2 (MeV)
+    analysisManager->CreateNtupleIColumn("EventID");     
+    analysisManager->CreateNtupleIColumn("PixelID");
+    analysisManager->CreateNtupleIColumn("VolName");      
+    analysisManager->CreateNtupleDColumn("EnergyDep");   
+    analysisManager->CreateNtupleDColumn("y");
+    analysisManager->CreateNtupleDColumn("z");
     analysisManager->FinishNtuple();
 
 
@@ -76,7 +79,7 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     analysisManager->CreateNtupleDColumn("t");
     analysisManager->CreateNtupleDColumn("dedx");
     analysisManager->CreateNtupleDColumn("theta");
-    analysisManager->CreateNtupleDColumn("dx");
+    analysisManager->CreateNtupleIColumn("VolName");
     analysisManager->CreateNtupleDColumn("dy");
     analysisManager->CreateNtupleDColumn("dz");
     analysisManager->CreateNtupleDColumn("momentum");

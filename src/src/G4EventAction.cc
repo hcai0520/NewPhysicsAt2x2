@@ -44,16 +44,45 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
     if ( ( printModulo > 0 ) && ( eventID % printModulo == 0 ) ) {
         G4cout << "---> End of event: " << eventID << G4endl;
     }
-    for (const auto& entry : accumulatedEnergy) {
-        G4int pixelID = entry.first;
-        G4double energyDeposit = entry.second; // In MeV
+    for (const auto& volumeEntry : accumulatedEnergy) {
+        const G4String& volumeName = volumeEntry.first;
+        const std::map<G4int, G4double>& pixelMap = volumeEntry.second;
 
-        analysisManager->FillNtupleIColumn(0, 0, eventID);                 // Event ID
-        analysisManager->FillNtupleIColumn(0, 1, pixelID);                 // Pixel CopyNo
-        analysisManager->FillNtupleDColumn(0, 2, energyDeposit/CLHEP::MeV); // Energy Dep [MeV]
-        analysisManager->AddNtupleRow(0);
+        for (const auto& entry : pixelMap) {
+            G4int pixelID = entry.first;
+            G4double energyDeposit = entry.second; // In MeV
+
+     
+            analysisManager->FillNtupleIColumn(0, 0, eventID);
+            analysisManager->FillNtupleIColumn(0, 1, pixelID);
+            if (volumeName == "Prisms_M0" )
+            {
+                analysisManager->FillNtupleIColumn(0, 2, 2);
+            }
+            if (volumeName == "Prisms_M1" )
+            {
+                analysisManager->FillNtupleIColumn(0, 2, 0);
+            }
+             if (volumeName == "Prisms_M2" )
+            {
+                analysisManager->FillNtupleIColumn(0, 2, 3);
+            }
+             if (volumeName == "Prisms_M3" )
+            {
+                analysisManager->FillNtupleIColumn(0, 2, 1);
+            }
+            analysisManager->FillNtupleDColumn(0, 3, energyDeposit / CLHEP::MeV);
+            analysisManager->FillNtupleDColumn(0, 4, positionY[volumeName][pixelID]/CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 5, positionZ[volumeName][pixelID]/CLHEP::cm);
+            
+            analysisManager->AddNtupleRow(0);
+        }
     }
+
+
     accumulatedEnergy.clear();
+    positionY.clear();
+    positionZ.clear();
 }
 
 //================================================================================

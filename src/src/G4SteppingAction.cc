@@ -67,9 +67,7 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
 
     const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
     G4double kinEnergy = dynParticle -> GetKineticEnergy(); 
-    //////
-    if (aStep->GetTrack()->GetParentID() != 0) return;
-    /////
+  
     //PreStep Info
     G4StepPoint * aPrePoint = aStep->GetPreStepPoint();
     G4VPhysicalVolume * aPrePV = aPrePoint->GetPhysicalVolume();
@@ -87,7 +85,7 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
     
     G4int evtNb = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
 
-
+    
     G4ThreeVector   Normal          =   G4ThreeVector(0 * m, 0 * m, 1 * m);
     G4ThreeVector   direction       =   track->GetMomentumDirection();
 
@@ -96,32 +94,35 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
     G4double        direction_x     =   direction.getX();
     G4double        direction_y     =   direction.getY();
     G4double        direction_z     =   direction.getZ();
-    G4double stepLength = aStep->GetStepLength();
+    G4double        stepLength = aStep->GetStepLength();
     //energy deposite in current step
     G4double        EDep            =   aStep-> GetTotalEnergyDeposit();
-    if (EDep == 0.) return;
+    //if (EDep == 0.) return;
     // skip world
+
+
     if (!aPrePV  || PreVolName == MUNDO_NOME) return; 
     if (!aPostPV || PostVolName == MUNDO_NOME) return;
-    // accumulatedEnergy[PreCopyNo] += EDep;
+
+    G4ThreeVector centerPos  = aPrePoint->GetTouchableHandle()->GetHistory()->GetTransform(0).TransformPoint(aPrePoint->GetPosition());
     
-    if (PreCopyNo == PostCopyNo) {
-    accumulatedEnergy[PreCopyNo] += EDep;
-    } else {
-    accumulatedEnergy[PreCopyNo] += EDep * 0.5;
-    accumulatedEnergy[PostCopyNo] += EDep * 0.5;
-    }
+    accumulatedEnergy[PreVolName][PreCopyNo] += EDep;
+    positionY[PreVolName][PreCopyNo] = centerPos.getY();
+    positionZ[PreVolName][PreCopyNo] = centerPos.getZ();
 
     if (stepLength <= 0) return; 
 
-    G4double dedx = EDep / (stepLength * 0.1); // MeV/cm
+    G4double dedx = EDep / (stepLength / cm);
     
     if (PostVolName == "")
     {
         track->SetTrackStatus(fStopAndKill);
     }
 
-    if (parti == "millicharged" || parti == "mu+" )
+    G4int parentID = track->GetParentID();
+    G4String particleName = track->GetDefinition()->GetParticleName();
+
+    if ((parti == "mu+" || parti == "millicharged") && track->GetParentID() == 0)
     //if (PreCopyNo != PostCopyNo && PostVolName != ""&& PreVolName != MUNDO_NOME)
     {   //void FillNtupleDColumn(G4int ntupleId, G4int columnId, G4double value);
         analysisManager->FillNtupleIColumn(1,0,fEventNumber);
@@ -131,46 +132,28 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
         analysisManager->FillNtupleDColumn(1,4,track->GetGlobalTime()/ns);
         analysisManager->FillNtupleDColumn(1,5,dedx);
         analysisManager->FillNtupleDColumn(1,6,acos(CosAngle)*180/3.1415);
-        analysisManager->FillNtupleDColumn(1,7,direction_x);
+        if (PreVolName == "Prisms_M0" )
+        {
+            analysisManager->FillNtupleIColumn(1, 7, 2);
+        }
+        if (PreVolName == "Prisms_M1" )
+        {
+            analysisManager->FillNtupleIColumn(1, 7, 0);
+        }
+        if (PreVolName == "Prisms_M2" )
+        {
+            analysisManager->FillNtupleIColumn(1, 7, 3);
+        }
+        if (PreVolName == "Prisms_M3" )
+        {
+            analysisManager->FillNtupleIColumn(1, 7, 1);
+        }
         analysisManager->FillNtupleDColumn(1,8,direction_y);
         analysisManager->FillNtupleDColumn(1,9,direction_z);      
         analysisManager->FillNtupleDColumn(1,10,momentum/GeV);
-     //   analysisManager->FillNtupleIColumn(1,11,PreCopyNo);      
-     //   analysisManager->FillNtupleDColumn(1,12,accumulatedEnergy[PreCopyNo]/MeV);
         analysisManager->AddNtupleRow(1);
         
     }
-
-  
-    // if (parti=="opticalphoton")
-    // {
-    //     G4String creatorname = creator->GetProcessName();
-    //     if (creatorname=="Cerenkov")
-    //     {
-    //         cout << kinEnergy/eV << endl;
-    //     }
-    //     track->SetTrackStatus(fStopAndKill);
-
-    // }
-
-    //============================================================================
-
-    //if (parti == "opticalphoton" && PreVolName == MUNDO_NOME && PostVolName == "pmt")//PreVolName == MUNDO_NOME && PostVolName == "v2")//&& track -> GetTrackID()!=1 && creator) 
-    //{
-
-    //    analysisManager->FillNtupleIColumn(1,0,fEventNumber);
-    //    analysisManager->FillNtupleDColumn(1,1,step_x/cm);
-    //    analysisManager->FillNtupleDColumn(1,2,step_y/cm);
-    //    analysisManager->FillNtupleDColumn(1,3,step_z/cm);
-    //    analysisManager->FillNtupleDColumn(1,4,track->GetGlobalTime()/ns);
-    //    analysisManager->FillNtupleDColumn(1,5,kinEnergy/eV);
-    //    analysisManager->FillNtupleDColumn(1,6,acos(CosAngle)*180/3.1415);
-    //    analysisManager->FillNtupleDColumn(1,7,direction_x);
-    //    analysisManager->FillNtupleDColumn(1,8,direction_y);
-    //    analysisManager->FillNtupleDColumn(1,9,direction_z);
-    //    analysisManager->AddNtupleRow(1);
-    //    track->SetTrackStatus(fStopAndKill);
-    //}
        
 }
 

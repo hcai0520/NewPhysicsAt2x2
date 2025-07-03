@@ -43,6 +43,9 @@
     #include "G4NeutronHPBuilder.hh"
     #include <G4HadronicProcessStore.hh>
     #include "G4UserLimits.hh"
+    #include "G4ProductionCuts.hh"
+    #include "G4Region.hh"
+    #include "G4RegionStore.hh"
     //================================================================================
 
     G4DetectorConstruction::G4DetectorConstruction (G4double RIndex, DetectorConfig& GeoConf)
@@ -51,9 +54,9 @@
         //G4NeutronHPManager::GetInstance()->SetVerboseLevel(0);
         G4HadronicProcessStore::Instance()->SetVerbose(0);
         // World
-        world_x = 100 * cm * 0.5;
-        world_y = 200 * cm * 0.5;
-        world_z = 100 * cm * 0.5;
+        world_x = 600 * cm * 0.5;
+        world_y = 600 * cm * 0.5;
+        world_z = 600 * cm * 0.5;
         //total size of the volume
         VLAr_x =  GeoConf.sizeX * cm * 0.5;
         VLAr_y =  GeoConf.sizeY * cm * 0.5;
@@ -71,8 +74,9 @@
     G4DetectorConstruction::~G4DetectorConstruction (){;}
 
 
-    //================================================================================
 
+
+   
     class Full3DParameterisation : public G4VPVParameterisation {
     public:
         Full3DParameterisation(G4int nY, G4int nZ, G4double pitchY, G4double pitchZ)
@@ -109,7 +113,6 @@
 
         // Define materials 
         DefineMaterials();
-        
         // Define volumes
         return DefineVolumes();
         
@@ -149,117 +152,108 @@
         G4VPhysicalVolume*  WorldPV         = new G4PVPlacement (0, G4ThreeVector (), WorldLV, MUNDO_NOME, 0, true, 0, fCheckOverlaps);
 
     //======================= Parametric volumes =======================
-
-    // Mother volume for stack
-    auto motherSolid = new G4Box("Mother", VLAr_x, VLAr_y, VLAr_z);
-    auto motherLogic = new G4LogicalVolume(motherSolid, Vacuo, "Mother");
-    new G4PVPlacement(0, {}, motherLogic, "Mother", WorldLV, false, 0);
-
-
+    G4int nY = VLAr_y/Pixel_y;
+    G4int nZ = VLAr_z/Pixel_z;
+    G4int nTotal = nY * nZ;//copy number from 0 to fnY*fnZ - 1    
+    
+    G4float gapsize  = 35*cm;
+    
     // Slice volume (same dimensions for all copies)
     auto sliceSolid = new G4Box("Slice", Pixel_x, Pixel_y, Pixel_z);
     auto sliceLogic = new G4LogicalVolume(sliceSolid, LAr, "Slice");
-
-    //G4UserLimits* limits = new G4UserLimits(.1*cm);
-    //sliceLogic->SetUserLimits(limits);
-
-    G4int nY = VLAr_y/Pixel_y;
-    G4int nZ = VLAr_z/Pixel_z;
-    G4int nTotal = nY * nZ;//copy number from 0 to fnY*fnZ - 1
-
-    new G4PVParameterised("Prisms",
-                          sliceLogic,//a pixel shape
-                          motherLogic,// the logic volume that contains all the copies
-                          kUndefined,  // Not tied to a single axis
-                          nTotal,//total number of copies
-                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
-    //using G4PVParameterised → a special mechanism in Geant4 to replicate volumes.
-    //Geant4 must know where to place each copy, so it calls your ComputeTransformation(copyNo, physVol) method for each copy.
-
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTIES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    //====================== LAr ======================
-      
-
-    //     G4int    NUMENTRIES              = 1;
-
-    //     G4double Scint_PP   [NUMENTRIES] = {9.8*eV};
-    //     G4double Scint_FAST [NUMENTRIES] = {1};
-    //     G4double Scint_SLOW [NUMENTRIES] = {1};
-
-    //     G4double rindex     [NUMENTRIES] = {1.58};
-    //     G4double rindexV    [NUMENTRIES] = {1.00};
-    //     G4double absorption [NUMENTRIES] = {1.00*m};
-
-
-    //     G4MaterialPropertiesTable* Scint_MPT = new G4MaterialPropertiesTable();
-
-    //     Scint_MPT->AddConstProperty("SCINTILLATIONYIELD",   200/MeV); // <-----------------------------------------
-    //     Scint_MPT->AddConstProperty("RESOLUTIONSCALE",      0.0001);
-    //     Scint_MPT->AddConstProperty("FASTTIMECONSTANT",        3.*ns);
-    //     Scint_MPT->AddConstProperty("SLOWTIMECONSTANT",     1200.*ns);
-    //     Scint_MPT->AddConstProperty("YIELDRATIO",           0.25);
-
-    //     Scint_MPT->AddProperty("FASTCOMPONENT", Scint_PP,   Scint_FAST,     NUMENTRIES);
-    //     Scint_MPT->AddProperty("SLOWCOMPONENT", Scint_PP,   Scint_SLOW,     NUMENTRIES);
-    //     Scint_MPT->AddProperty("RINDEX",        Scint_PP,   rindexV,        NUMENTRIES);
-    //     Scint_MPT->AddProperty("ABSLENGTH",     Scint_PP,   absorption,     NUMENTRIES);
-
-    //     LAr->SetMaterialPropertiesTable(Scint_MPT);
-
-
-
-    // //==================== Stainless (Inox) =====================
-
-    //     G4MaterialPropertiesTable* Inox_MPT = new G4MaterialPropertiesTable();
-
-    //     G4double reflect[NUMENTRIES] = {0.3};
-    //     G4double absorption_al[NUMENTRIES] = {0.0000000001*cm};
-
-    //     Inox_MPT->AddProperty("REFLECTIVITY",   Scint_PP,   reflect,        NUMENTRIES);
-    //     Inox_MPT->AddProperty("ABSLENGTH",      Scint_PP,   absorption_al,  NUMENTRIES);
-
-    //     Inox->SetMaterialPropertiesTable(Inox_MPT);
-
-    //     G4OpticalSurface *Inox_OptSurf = new G4OpticalSurface("Inox_OptSurf");
-    //     Inox_OptSurf->SetModel(glisur);
-    //     Inox_OptSurf->SetType(dielectric_metal);
-    //     Inox_OptSurf->SetFinish(ground);
-    //     Inox_OptSurf->SetPolish(0.9);
-
-    //     Inox_OptSurf->SetMaterialPropertiesTable(Inox_MPT);
-
-    //     new G4LogicalBorderSurface("Inox_BorderSurface1", WorldPV, Tube_place,  Inox_OptSurf);
-    //     new G4LogicalBorderSurface("Inox_BorderSurface1", WorldPV, Cap_place,   Inox_OptSurf);
     
-
-    // //==================== quartz =====================
-
-    //     G4MaterialPropertiesTable* Quartz_MPT = new G4MaterialPropertiesTable();
-
-    //     G4double RINDEXQ    [NUMENTRIES] = {1.1};
-    //     G4double absorption_Q[NUMENTRIES] = {0.1*cm};
-
-    //     Quartz_MPT->AddProperty("RINDEX",         Scint_PP,   RINDEXQ,        NUMENTRIES);
-    //     Quartz_MPT->AddProperty("ABSLENGTH",      Scint_PP,   absorption_Q,   NUMENTRIES);
-
-    //     Quartz->SetMaterialPropertiesTable(Quartz_MPT);
-
-    // //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Visualization Attributes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    // M0_Mother volume for stack
+    auto M0_motherSolid = new G4Box("M0_Mother", VLAr_x, VLAr_y, VLAr_z);
+    auto M0_motherLogic = new G4LogicalVolume(M0_motherSolid, Vacuo, "M0_Mother");
+    new G4PVPlacement(0, G4ThreeVector (gapsize,0,-gapsize), M0_motherLogic, "M0_Mother", WorldLV, false, 0);
 
 
-    //     G4VisAttributes* cinza = new G4VisAttributes (G4Colour (0.5, 0.5, 0.5, 1));
-    //     G4VisAttributes* azul = new G4VisAttributes (G4Colour (0.5, 0.5, 1, 0.8));
-    //     cinza->SetForceSolid (true);
-    //     azul->SetForceSolid (true);
+    new G4PVParameterised("Prisms_M0",
+                          sliceLogic,
+                          M0_motherLogic,
+                          kUndefined,  // Not tied to a single axis
+                          nTotal,
+                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
 
 
-    //     Cham_logico     ->SetVisAttributes(azul);
-    //     PMT_logico      ->SetVisAttributes(cinza);
-    //     Sampleholder_logico   ->SetVisAttributes(cinza);
+    //M1_Mother volume for stack
+    auto M1_motherSolid = new G4Box("M1_Mother", VLAr_x, VLAr_y, VLAr_z);
+    auto M1_motherLogic = new G4LogicalVolume(M0_motherSolid, Vacuo, "M1_Mother");
+    new G4PVPlacement(0, G4ThreeVector (-gapsize,0,-gapsize), M1_motherLogic, "M1_Mother", WorldLV, false, 0);
 
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% End %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        return WorldPV;
+    new G4PVParameterised("Prisms_M1",
+                          sliceLogic,
+                          M1_motherLogic,
+                          kUndefined,  // Not tied to a single axis
+                          nTotal,
+                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
+
+     // M2_Mother volume for stack
+    auto M2_motherSolid = new G4Box("M2_Mother", VLAr_x, VLAr_y, VLAr_z);
+    auto M2_motherLogic = new G4LogicalVolume(M2_motherSolid, Vacuo, "M2_Mother");
+    new G4PVPlacement(0, G4ThreeVector (gapsize,0,gapsize), M2_motherLogic, "M2_Mother", WorldLV, false, 0);
+
+
+    new G4PVParameterised("Prisms_M2",
+                          sliceLogic,
+                          M2_motherLogic,
+                          kUndefined,  // Not tied to a single axis
+                          nTotal,
+                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
+
+
+    // M3_Mother volume for stack
+    auto M3_motherSolid = new G4Box("M3_Mother", VLAr_x, VLAr_y, VLAr_z);
+    auto M3_motherLogic = new G4LogicalVolume(M3_motherSolid, Vacuo, "M3_Mother");
+    new G4PVPlacement(0, G4ThreeVector (-gapsize,0,gapsize), M3_motherLogic, "M3_Mother", WorldLV, false, 0);
+
+
+    new G4PVParameterised("Prisms_M3",
+                          sliceLogic,
+                          M3_motherLogic,
+                          kUndefined,  // Not tied to a single axis
+                          nTotal,
+                          new Full3DParameterisation(nY, nZ, Pixel_y*2, Pixel_z*2));
+
+
+
+
+    sliceLogic->SetUserLimits(new G4UserLimits(0.4 * mm));
+
+    // Production cuts
+    // auto cuts = new G4ProductionCuts();
+    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("gamma"));
+    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("e-"));
+    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("e+"));
+
+//for (auto logic : {M0_motherLogic, M1_motherLogic, M2_motherLogic, M3_motherLogic}) {
+//    auto region = new G4Region("LArRegion_" + logic->GetName());  // Unique region names
+//    region->AddRootLogicalVolume(logic);
+//    logic->SetRegion(region);
+//    region->SetProductionCuts(cuts);  // Shared cuts object
+//}
+
+    G4VisAttributes* grey  = new G4VisAttributes (G4Colour (0.5, 0.5, 0.5, 0.8));
+    G4VisAttributes* blue  = new G4VisAttributes (G4Colour (0.5, 0.5, 1.0, 0.8));
+    G4VisAttributes* red   = new G4VisAttributes (G4Colour (1.0, 0.5, 0.5, 0.8));
+    G4VisAttributes* green = new G4VisAttributes (G4Colour (0.5, 1.0, 0.5, 0.8));
+    grey->SetForceSolid (true);
+    blue->SetForceSolid (true);
+    red->SetForceSolid (true);
+    green->SetForceSolid (true);
+    M0_motherLogic->SetVisAttributes(grey);
+    M1_motherLogic->SetVisAttributes(blue);
+    M2_motherLogic->SetVisAttributes(red);
+    M3_motherLogic->SetVisAttributes(green);
+
+
+
+ 
+
+ 
+
+    return WorldPV;
         
     }

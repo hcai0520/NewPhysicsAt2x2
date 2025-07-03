@@ -8,7 +8,7 @@
 
 #include "FTFP_BERT.hh"
 #include "G4OpticalPhysics.hh"
-#include "G4EmStandardPhysics_option1.hh"
+#include "G4EmStandardPhysics_option4.hh"
 
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
@@ -48,7 +48,7 @@ int main(int argc,char** argv) {
 
     // declares the physics of the simulation
     //G4VModularPhysicsList* physicsList = new FTFP_BERT();
-    //physicsList->ReplacePhysics(new G4EmStandardPhysics_option1());
+    //physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());
     //G4OpticalPhysics* opticalPhysics = new G4OpticalPhysics();
 
     //physicsList->RegisterPhysics(opticalPhysics);

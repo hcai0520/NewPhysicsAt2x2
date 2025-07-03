@@ -46,12 +46,15 @@ void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     // Sample energy uniformly in range
     //G4double kineticEnergy = E_min + G4UniformRand() * (E_max - E_min);
 
+    G4double p = 1.0 * GeV;
 
-    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("mu+");
+    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("millicharged");
+    G4double mass = mcp->GetPDGMass();
+    G4double ekin = std::sqrt(p*p + mass*mass) - mass;
     particleGun->SetParticleDefinition(mcp);
     particleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., 1.));
-    particleGun->SetParticleEnergy(2.1 * GeV);
-    particleGun->SetParticlePosition(G4ThreeVector(0*cm,0*cm,-1*m));
+    particleGun->SetParticleEnergy(ekin);
+    particleGun->SetParticlePosition(G4ThreeVector(-40*cm,0*cm,-2.8*m));
 
     particleGun->GeneratePrimaryVertex(anEvent);
     
