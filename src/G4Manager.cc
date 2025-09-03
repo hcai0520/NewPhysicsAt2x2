@@ -20,9 +20,9 @@
 int main(int argc,char** argv) {
     
     // Seed the random number generator manually
-//    G4long myseed = 345354;
-    // G4long myseed = 3453540;
-    // CLHEP::HepRandom::setTheSeed(myseed);
+    G4long myseed = 3951543;
+    //G4long myseed = 3453540;
+    CLHEP::HepRandom::setTheSeed(myseed);
 
    
     G4double RIndex = 1;

@@ -52,7 +52,7 @@ void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     G4double mass = mcp->GetPDGMass();
     G4double ekin = std::sqrt(p*p + mass*mass) - mass;
     particleGun->SetParticleDefinition(mcp);
-    particleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., 1.));
+    particleGun->SetParticleMomentumDirection(G4ThreeVector(0., -0.05, 1.));
     particleGun->SetParticleEnergy(ekin);
     particleGun->SetParticlePosition(G4ThreeVector(-40*cm,0*cm,-2.8*m));
 

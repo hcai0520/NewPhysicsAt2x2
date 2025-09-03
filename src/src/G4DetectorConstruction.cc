@@ -220,20 +220,20 @@
 
 
 
-    sliceLogic->SetUserLimits(new G4UserLimits(0.4 * mm));
+    sliceLogic->SetUserLimits(new G4UserLimits(5 * mm));
 
     // Production cuts
-    // auto cuts = new G4ProductionCuts();
-    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("gamma"));
-    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("e-"));
-    // cuts->SetProductionCut(100.05 * mm, G4ProductionCuts::GetIndex("e+"));
+    auto cuts = new G4ProductionCuts();
+    cuts->SetProductionCut(5 * mm, G4ProductionCuts::GetIndex("gamma"));
+    cuts->SetProductionCut(5 * mm, G4ProductionCuts::GetIndex("e-"));
+    cuts->SetProductionCut(5 * mm, G4ProductionCuts::GetIndex("e+"));
 
-//for (auto logic : {M0_motherLogic, M1_motherLogic, M2_motherLogic, M3_motherLogic}) {
-//    auto region = new G4Region("LArRegion_" + logic->GetName());  // Unique region names
-//    region->AddRootLogicalVolume(logic);
-//    logic->SetRegion(region);
-//    region->SetProductionCuts(cuts);  // Shared cuts object
-//}
+    for (auto logic : {M0_motherLogic, M1_motherLogic, M2_motherLogic, M3_motherLogic}) {
+        auto region = new G4Region("LArRegion_" + logic->GetName());  
+        region->AddRootLogicalVolume(logic);
+        logic->SetRegion(region);
+        region->SetProductionCuts(cuts);  
+    }
 
     G4VisAttributes* grey  = new G4VisAttributes (G4Colour (0.5, 0.5, 0.5, 0.8));
     G4VisAttributes* blue  = new G4VisAttributes (G4Colour (0.5, 0.5, 1.0, 0.8));

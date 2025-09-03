@@ -109,7 +109,13 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
     accumulatedEnergy[PreVolName][PreCopyNo] += EDep;
     positionY[PreVolName][PreCopyNo] = centerPos.getY();
     positionZ[PreVolName][PreCopyNo] = centerPos.getZ();
+    if (track->GetParentID() == 0){
+        accumulatedEnergy_Primary[PreVolName][PreCopyNo] += EDep;
 
+    } else{
+        accumulatedEnergy_Secondary[PreVolName][PreCopyNo] += EDep;
+
+    }
     if (stepLength <= 0) return; 
 
     G4double dedx = EDep / (stepLength / cm);
@@ -119,12 +125,12 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
         track->SetTrackStatus(fStopAndKill);
     }
 
-    G4int parentID = track->GetParentID();
-    G4String particleName = track->GetDefinition()->GetParticleName();
+    //G4int parentID = track->GetParentID();
+    //G4String particleName = track->GetDefinition()->GetParticleName();
 
-    if ((parti == "mu+" || parti == "millicharged") && track->GetParentID() == 0)
+    //if ((parti == "mu+" || parti == "millicharged") && track->GetParentID() == 0)
     //if (PreCopyNo != PostCopyNo && PostVolName != ""&& PreVolName != MUNDO_NOME)
-    {   //void FillNtupleDColumn(G4int ntupleId, G4int columnId, G4double value);
+    //{   //void FillNtupleDColumn(G4int ntupleId, G4int columnId, G4double value);
         analysisManager->FillNtupleIColumn(1,0,fEventNumber);
         analysisManager->FillNtupleDColumn(1,1,stepLength/cm);
         analysisManager->FillNtupleDColumn(1,2,step_y/cm);
@@ -153,7 +159,7 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
         analysisManager->FillNtupleDColumn(1,10,momentum/GeV);
         analysisManager->AddNtupleRow(1);
         
-    }
+    //}
        
 }
 

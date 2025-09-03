@@ -66,6 +66,8 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     analysisManager->CreateNtupleIColumn("PixelID");
     analysisManager->CreateNtupleIColumn("VolName");      
     analysisManager->CreateNtupleDColumn("EnergyDep");   
+    analysisManager->CreateNtupleDColumn("EnergyDep_Primary"); 
+    analysisManager->CreateNtupleDColumn("EnergyDep_Secondary"); 
     analysisManager->CreateNtupleDColumn("y");
     analysisManager->CreateNtupleDColumn("z");
     analysisManager->FinishNtuple();

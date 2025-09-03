@@ -72,17 +72,30 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
                 analysisManager->FillNtupleIColumn(0, 2, 1);
             }
             analysisManager->FillNtupleDColumn(0, 3, energyDeposit / CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 4, positionY[volumeName][pixelID]/CLHEP::cm);
-            analysisManager->FillNtupleDColumn(0, 5, positionZ[volumeName][pixelID]/CLHEP::cm);
+
+            if(accumulatedEnergy_Primary[volumeName][pixelID] > 0)
+            {
+                analysisManager->FillNtupleDColumn(0, 4, energyDeposit/ CLHEP::MeV);
+            }
+            if(accumulatedEnergy_Primary[volumeName][pixelID] == 0 and accumulatedEnergy_Secondary[volumeName][pixelID] >0){
+                analysisManager->FillNtupleDColumn(0, 5, accumulatedEnergy_Secondary[volumeName][pixelID]/ CLHEP::MeV);
+            }
+            analysisManager->FillNtupleDColumn(0, 6, positionY[volumeName][pixelID]/CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 7, positionZ[volumeName][pixelID]/CLHEP::cm);
             
             analysisManager->AddNtupleRow(0);
         }
     }
 
-
+    accumulatedEnergy_Primary.clear();
+    accumulatedEnergy_Secondary.clear();
     accumulatedEnergy.clear();
     positionY.clear();
     positionZ.clear();
+    //primaryVolumes.clear();
+    //primaryCopyNos.clear();
+    //secVolumes.clear();
+    //secCopyNos.clear();
 }
 
 //================================================================================
