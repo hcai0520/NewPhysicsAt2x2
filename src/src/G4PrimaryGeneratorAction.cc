@@ -48,14 +48,32 @@ void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
 
     G4double p = 1.0 * GeV;
 
-    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("millicharged");
+    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("mu+");
     G4double mass = mcp->GetPDGMass();
     G4double ekin = std::sqrt(p*p + mass*mass) - mass;
     particleGun->SetParticleDefinition(mcp);
-    particleGun->SetParticleMomentumDirection(G4ThreeVector(0., -0.05, 1.));
+    //particleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0.0, 1.));
     particleGun->SetParticleEnergy(ekin);
-    particleGun->SetParticlePosition(G4ThreeVector(-40*cm,0*cm,-2.8*m));
+    //particleGun->SetParticlePosition(G4ThreeVector(-35*cm,0*cm,-.75*m));
+    const G4double u  = 2.0*G4UniformRand() - 1.0;                 // cos(theta) ∈ [-1,1]
+    const G4double ph = 2.0*3.14159265358979323846*G4UniformRand(); // phi ∈ [0,2π)
+    const G4double s  = std::sqrt(1.0 - u*u);
+    particleGun->SetParticleMomentumDirection(G4ThreeVector(s*std::cos(ph), s*std::sin(ph), u));
 
+    const G4double hx = 30*cm;  // = sizeX/2
+    const G4double hy = 70*cm;  // = sizeY/2
+    const G4double hz = 30*cm;  // = sizeZ/2
+    const G4double gapsize = 35*cm;
+
+    const G4double x0 = (G4UniformRand() < 0.5) ? -gapsize : +gapsize; 
+    const G4double z0 = (G4UniformRand() < 0.5) ? -gapsize : +gapsize; 
+
+    auto urand = [](){ return 2.0*G4UniformRand() - 1.0; }; 
+    const G4double x = x0 + hx*urand();
+    const G4double y =       hy*urand();
+    const G4double z = z0 + hz*urand();
+
+particleGun->SetParticlePosition(G4ThreeVector(x, y, z));
     particleGun->GeneratePrimaryVertex(anEvent);
     
 

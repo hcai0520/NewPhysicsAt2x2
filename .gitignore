@@ -14,3 +14,8 @@ CMakeUserPresets.json
 build/
 muon/
 test/
+twobytwo_event_display/
+cosmic_mu/
+Analysis/
+
+
