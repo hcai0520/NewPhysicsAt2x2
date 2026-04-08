@@ -20,7 +20,7 @@ void MyPhysicsList::DefineMillichargedParticle() {
     if (!G4ParticleTable::GetParticleTable()->FindParticle("millicharged")) {
         new G4ParticleDefinition(
             "millicharged",        // name
-            10.0 * CLHEP::MeV,           // mass
+            50.0 * CLHEP::MeV,           // mass
             0.0 * CLHEP::MeV,             // width
             0.01*CLHEP::eplus,           // charge
             1,                     // 2*spin

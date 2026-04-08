@@ -68,26 +68,19 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
             }
 
 
-            G4double eSecElectron = 0.0;
-            if (auto ve = accumulatedEnergy_e.find(volumeName); ve != accumulatedEnergy_e.end()) {
-                if (auto ie = ve->second.find(pixelID); ie != ve->second.end()) eSecElectron = ie->second;
-            }
-            
-            G4double eSecGamma = 0.0; 
-            if (auto vg = accumulatedEnergy_gamma.find(volumeName); vg != accumulatedEnergy_gamma.end()) {
-                if (auto ig = vg->second.find(pixelID); ig != vg->second.end()) eSecGamma = ig->second;
-            }
-
 
             const bool hasPrim = (ePrim > 0.0);
             const bool hasSec  = (eSec  > 0.0);
 
-            const G4double primaryPixelEnergy   = hasPrim ? energyDeposit : 0.0;
+            const G4double primaryPixelEnergy   = hasPrim ? ePrim : 0.0;
             const G4double secondaryOnlyEnergy  = (!hasPrim && hasSec) ? energyDeposit : 0.0;
             const G4double primaryOnlyEnergy  = (hasPrim && !hasSec) ? energyDeposit : 0.0;
 
             //position y and z
-            G4double y = 0.0, z = 0.0;
+            G4double x=0.0, y = 0.0, z = 0.0;
+            if (auto vx = positionX.find(volumeName); vx != positionX.end()) {
+                if (auto ix = vx->second.find(pixelID); ix != vx->second.end()) x = ix->second;
+            }
             if (auto vy = positionY.find(volumeName); vy != positionY.end()) {
                 if (auto iy = vy->second.find(pixelID); iy != vy->second.end()) y = iy->second;
             }
@@ -101,10 +94,9 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
             analysisManager->FillNtupleDColumn(0, 4, primaryPixelEnergy/ CLHEP::MeV);
             analysisManager->FillNtupleDColumn(0, 5, primaryOnlyEnergy/ CLHEP::MeV);
             analysisManager->FillNtupleDColumn(0, 6, secondaryOnlyEnergy/ CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 7, eSecElectron / CLHEP::MeV); 
-            analysisManager->FillNtupleDColumn(0, 8, eSecGamma / CLHEP::MeV );  
-            analysisManager->FillNtupleDColumn(0, 9, y/CLHEP::cm);
-            analysisManager->FillNtupleDColumn(0, 10, z/CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 7, x/CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 8, y/CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 9, z/CLHEP::cm);
             
             
             analysisManager->AddNtupleRow(0);
@@ -114,10 +106,9 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
     accumulatedEnergy_Primary.clear();
     accumulatedEnergy_Secondary.clear();
     accumulatedEnergy.clear();
-    accumulatedEnergy_e.clear();       
-    accumulatedEnergy_gamma.clear();
     positionY.clear();
     positionZ.clear();
+    positionX.clear();
 }
 
 //================================================================================

@@ -9,6 +9,7 @@ extern std::map<G4String, std::map<G4int, G4double>> accumulatedEnergy_Primary;
 extern std::map<G4String, std::map<G4int, G4double>> accumulatedEnergy_Secondary;
 extern std::map<G4String, std::map<G4int, G4double>> positionY;
 extern std::map<G4String, std::map<G4int, G4double>> positionZ;
+extern std::map<G4String, std::map<G4int, G4double>> positionX;
 extern std::map<G4String, std::map<G4int, G4double>> accumulatedEnergy_e;
 extern std::map<G4String, std::map<G4int, G4double>> accumulatedEnergy_gamma;
 

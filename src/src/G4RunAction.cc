@@ -48,7 +48,7 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     G4cout << "Using " << analysisManager->GetType() << " analysis manager." << G4endl;
     timer->Start();
     analysisManager->SetDefaultFileType("root");
-    analysisManager->OpenFile("MCP_mu_b");
+    analysisManager->OpenFile("MCP_new");
     analysisManager->SetVerboseLevel(0);
 
 
@@ -69,8 +69,7 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     analysisManager->CreateNtupleDColumn("EnergyDep_Primary"); 
     analysisManager->CreateNtupleDColumn("EnergyDep_Primary_only"); 
     analysisManager->CreateNtupleDColumn("EnergyDep_Secondary_only"); 
-    analysisManager->CreateNtupleDColumn("electron");   
-    analysisManager->CreateNtupleDColumn("gamma");
+    analysisManager->CreateNtupleDColumn("x");
     analysisManager->CreateNtupleDColumn("y");
     analysisManager->CreateNtupleDColumn("z");
     analysisManager->FinishNtuple();

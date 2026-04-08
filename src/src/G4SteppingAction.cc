@@ -104,17 +104,13 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
     G4ThreeVector centerPos  = aPrePoint->GetTouchableHandle()->GetHistory()->GetTransform(0).TransformPoint(aPrePoint->GetPosition());
     positionY[PreVolName][PreCopyNo] = centerPos.getY();
     positionZ[PreVolName][PreCopyNo] = centerPos.getZ();   
+    positionX[PreVolName][PreCopyNo] = centerPos.getX();
 
     accumulatedEnergy[PreVolName][PreCopyNo] += EDep;
     if (track->GetParentID() == 0){
         accumulatedEnergy_Primary[PreVolName][PreCopyNo] += EDep;
     } else{
-        accumulatedEnergy_Secondary[PreVolName][PreCopyNo] += EDep;
-        if(parti == "e+" || parti == "e-"){
-            accumulatedEnergy_e[PreVolName][PreCopyNo] += .01*CLHEP::MeV;
-        }else if(parti == "gamma"){
-            accumulatedEnergy_gamma[PreVolName][PreCopyNo] += .01 *CLHEP::MeV;
-        }
+        accumulatedEnergy_Secondary[PreVolName][PreCopyNo] += EDep;      
     }
 
    
@@ -160,9 +156,5 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
        
 }
 
-//================================================================================
-//each step check if the step in the interface or same volume (across the volume ?)
-//energy deposition in that vloume
-//implement the changes to the stepping action to get the energy deposited in the previous volume
-//write a quick root script to display it as a 2d histogram (or other options?)
+
 
