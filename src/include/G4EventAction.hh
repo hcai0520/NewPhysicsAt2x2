@@ -23,12 +23,20 @@ public:
     
     virtual void    BeginOfEventAction(const G4Event* event);
     virtual void    EndOfEventAction(const G4Event* event);
-    
+    void ResetMuonTrack();
+    void UpdateMuonTrack(const G4ThreeVector& prePos,
+                         const G4ThreeVector& postPos);
+    G4ThreeVector GetMuonStart() const { return muonStart; }
+    G4ThreeVector GetMuonEnd()   const { return muonEnd; }
     
 public:
     G4int nOfReflections;
     G4int nOfDetections;
 
+private:
+    G4ThreeVector muonStart;
+    G4ThreeVector muonEnd;
+    G4bool hasMuonTrack;
     
 };
 

@@ -48,7 +48,7 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     G4cout << "Using " << analysisManager->GetType() << " analysis manager." << G4endl;
     timer->Start();
     analysisManager->SetDefaultFileType("root");
-    analysisManager->OpenFile("MCP_new");
+    analysisManager->OpenFile("Muon_calib");
     analysisManager->SetVerboseLevel(0);
 
 
@@ -62,16 +62,34 @@ void G4RunAction::BeginOfRunAction(const G4Run* aRun) {
     //analysisManager->SetFirstNtupleId(1);
     //Declara ntuples
     analysisManager->CreateNtuple("PixelEDep", "Energy per pixel");
-    analysisManager->CreateNtupleIColumn("EventID");     
+
+    analysisManager->CreateNtupleIColumn("EventID");
     analysisManager->CreateNtupleIColumn("PixelID");
-    analysisManager->CreateNtupleIColumn("VolName");      
-    analysisManager->CreateNtupleDColumn("EnergyDep");   
-    analysisManager->CreateNtupleDColumn("EnergyDep_Primary"); 
-    analysisManager->CreateNtupleDColumn("EnergyDep_Primary_only"); 
-    analysisManager->CreateNtupleDColumn("EnergyDep_Secondary_only"); 
+    analysisManager->CreateNtupleIColumn("VolName");
+
+    analysisManager->CreateNtupleDColumn("EnergyDep");
+    analysisManager->CreateNtupleDColumn("EnergyDep_Primary");
+    analysisManager->CreateNtupleDColumn("EnergyDep_Primary_only");
+    analysisManager->CreateNtupleDColumn("EnergyDep_Secondary_only");
+
     analysisManager->CreateNtupleDColumn("x");
     analysisManager->CreateNtupleDColumn("y");
     analysisManager->CreateNtupleDColumn("z");
+
+    analysisManager->CreateNtupleDColumn("x_start");
+    analysisManager->CreateNtupleDColumn("y_start");
+    analysisManager->CreateNtupleDColumn("z_start");
+
+    analysisManager->CreateNtupleDColumn("x_end");
+    analysisManager->CreateNtupleDColumn("y_end");
+    analysisManager->CreateNtupleDColumn("z_end");
+
+    analysisManager->CreateNtupleIColumn("IOGroup");
+    analysisManager->CreateNtupleIColumn("Plane");
+    analysisManager->CreateNtupleIColumn("PixelY");
+    analysisManager->CreateNtupleIColumn("PixelZ");
+    analysisManager->CreateNtupleIColumn("ThresholdLocalKey");
+
     analysisManager->FinishNtuple();
 
 

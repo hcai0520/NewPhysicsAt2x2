@@ -80,6 +80,13 @@ void G4SteppingAction::UserSteppingAction (const G4Step* aStep) {
     if (aPostPV) PostVolName= aPostPV->GetName();
     G4int PostCopyNo = aPostPoint->GetTouchableHandle()->GetCopyNumber();
 
+    // record primary muon track start/end
+    if (track->GetParentID() == 0 && parti == "mu-") {
+        fEventAction->UpdateMuonTrack(
+        aPrePoint->GetPosition(),
+        aPostPoint->GetPosition()
+    );
+    }
     
     //G4int evtNb = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
 

@@ -1,118 +1,192 @@
 #include "G4PrimaryGeneratorAction.hh"
 #include "G4Constantes.hh"
 
-#include "Randomize.hh"
-
 #include "G4Event.hh"
+#include "G4Exception.hh"
+#include "G4ParticleDefinition.hh"
 #include "G4ParticleGun.hh"
 #include "G4ParticleTable.hh"
-#include "G4ParticleDefinition.hh"
-
-#include "G4RandomTools.hh"
 #include "G4SystemOfUnits.hh"
-#include <cmath>  
-// ============================================================================
+#include "Randomize.hh"
+
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <unordered_map>
+
+namespace {
+const char* kGeometryPoolPath =
+    "/Users/hongc/MCP_Analysis/Notebook/production_muon_geometry_pool.csv";
+
+std::vector<std::string> SplitCsvLine(const std::string& line) {
+    std::vector<std::string> fields;
+    std::stringstream stream(line);
+    std::string field;
+    while (std::getline(stream, field, ',')) fields.push_back(field);
+    return fields;
+}
+}
 
 G4PrimaryGeneratorAction::G4PrimaryGeneratorAction()
- : G4VUserPrimaryGeneratorAction(), 
-   particleGun(0)
-{   
-    // default
-    flag_alpha=true;
-    G4int n_particle = 1;
-    particleGun = new G4ParticleGun(n_particle);
-    // G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
-    // G4ParticleDefinition* particle = particleTable->FindParticle("alpha");   
-}
+    : G4VUserPrimaryGeneratorAction(),
+      particleGun(new G4ParticleGun(1)),
+      selectedTrackId(-1),
+      selectedDataEventIndex(-1),
+      selectedDataGroupId(-1) {
+    flag_alpha = true;
+    LoadGeometryPool(kGeometryPoolPath);
 
-// ============================================================================
+    G4cout << "Loaded muon geometry pool: " << geometryPool.size()
+           << " tracks from " << kGeometryPoolPath << G4endl;
+}
 
 G4PrimaryGeneratorAction::~G4PrimaryGeneratorAction() {
-    
     delete particleGun;
-    
 }
 
-// ============================================================================
-
-void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) { 
-    
-    static const double pi  = 3.14159265358979323846;
-
-    // Define energy range (in MeV)
-    //G4double E_min = 50.*MeV;
-    //G4double E_max = 1000.*MeV;
-
-    // Sample energy uniformly in range
-    //G4double kineticEnergy = E_min + G4UniformRand() * (E_max - E_min);
-
-    G4double p = 10.0 * GeV;
-
-    G4ParticleDefinition* mcp = G4ParticleTable::GetParticleTable()->FindParticle("millicharged");
-    G4double mass = mcp->GetPDGMass();
-    G4double ekin = std::sqrt(p*p + mass*mass) - mass;
-    particleGun->SetParticleDefinition(mcp);
-    particleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0.0, 1.));
-    particleGun->SetParticleEnergy(ekin);
-    particleGun->SetParticlePosition(G4ThreeVector(35*cm,0*cm,-.75*m));
-    //const G4double u  = 2.0*G4UniformRand() - 1.0;                 // cos(theta) ∈ [-1,1]
-    //const G4double ph = 2.0*3.14159265358979323846*G4UniformRand(); // phi ∈ [0,2π)
-    //const G4double s  = std::sqrt(1.0 - u*u);
-    //particleGun->SetParticleMomentumDirection(G4ThreeVector(s*std::cos(ph), s*std::sin(ph), u));
-
-    //const G4double hx = 30*cm;  // = sizeX/2
-    //const G4double hy = 70*cm;  // = sizeY/2
-    //const G4double hz = 30*cm;  // = sizeZ/2
-    //const G4double gapsize = 35*cm;
-
-    //const G4double x0 = (G4UniformRand() < 0.5) ? -gapsize : +gapsize; 
-    //const G4double z0 = (G4UniformRand() < 0.5) ? -gapsize : +gapsize; 
-
-    //auto urand = [](){ return 2.0*G4UniformRand() - 1.0; }; 
-    //const G4double x = x0 + hx*urand();
-    //const G4double y =       hy*urand();
-    //const G4double z = z0 + hz*urand();
-
-    //particleGun->SetParticlePosition(G4ThreeVector(x, y, z));
-    particleGun->GeneratePrimaryVertex(anEvent);
-    
-
-    flag_alpha = true;   
-    
-}
-
-
-// ============================================================================
-
-void G4PrimaryGeneratorAction::SetOptPhotonPolar() {
-    
-    G4double angle = G4UniformRand() * 360.0*deg;
-    SetOptPhotonPolar(angle);
-    
-}
-
-// ============================================================================
-
-void G4PrimaryGeneratorAction::SetOptPhotonPolar(G4double angle) {
-    
-    if (particleGun->GetParticleDefinition()->GetParticleName() != "opticalphoton") {
-        G4cout << "--> warning from PrimaryGeneratorAction::SetOptPhotonPolar() :"
-                "the particleGun is not an opticalphoton" << G4endl;
+void G4PrimaryGeneratorAction::LoadGeometryPool(const std::string& path) {
+    std::ifstream input(path);
+    if (!input) {
+        G4ExceptionDescription message;
+        message << "Cannot open muon geometry pool: " << path;
+        G4Exception("G4PrimaryGeneratorAction::LoadGeometryPool",
+                    "MuonPool001", FatalException, message);
         return;
     }
 
-    G4ThreeVector normal (1., 0., 0.);
-    G4ThreeVector kphoton = particleGun->GetParticleMomentumDirection();
-    G4ThreeVector product = normal.cross(kphoton);
-    G4double modul2       = product*product;
+    std::string line;
+    if (!std::getline(input, line)) {
+        G4Exception("G4PrimaryGeneratorAction::LoadGeometryPool",
+                    "MuonPool002", FatalException,
+                    "Muon geometry pool is empty.");
+        return;
+    }
 
-    G4ThreeVector e_perpend (0., 0., 1.);
-    if (modul2 > 0.) e_perpend = (1./std::sqrt(modul2))*product;
-    G4ThreeVector e_paralle    = e_perpend.cross(kphoton);
+    const auto header = SplitCsvLine(line);
+    std::unordered_map<std::string, std::size_t> column;
+    for (std::size_t i = 0; i < header.size(); ++i) column[header[i]] = i;
 
-    G4ThreeVector polar = std::cos(angle)*e_paralle + std::sin(angle)*e_perpend;
-    particleGun->SetParticlePolarization(polar);
-    
+    const std::vector<std::string> required = {
+        "track_id", "event_index", "group_id",
+        "start_x_cm", "start_y_cm", "start_z_cm",
+        "direction_x", "direction_y", "direction_z"
+    };
+    for (const auto& name : required) {
+        if (column.find(name) == column.end()) {
+            G4ExceptionDescription message;
+            message << "Missing column in muon geometry pool: " << name;
+            G4Exception("G4PrimaryGeneratorAction::LoadGeometryPool",
+                        "MuonPool003", FatalException, message);
+            return;
+        }
+    }
+
+    G4long lineNumber = 1;
+    while (std::getline(input, line)) {
+        ++lineNumber;
+        if (line.empty()) continue;
+
+        try {
+            const auto fields = SplitCsvLine(line);
+            auto value = [&](const std::string& name) -> const std::string& {
+                const auto index = column.at(name);
+                if (index >= fields.size()) throw std::runtime_error("short row");
+                return fields[index];
+            };
+
+            TrackGeometry track;
+            track.trackId = std::stoll(value("track_id"));
+            track.eventIndex = std::stoll(value("event_index"));
+            track.groupId = std::stoll(value("group_id"));
+            track.start = G4ThreeVector(
+                std::stod(value("start_x_cm")) * cm,
+                std::stod(value("start_y_cm")) * cm,
+                std::stod(value("start_z_cm")) * cm);
+            track.direction = G4ThreeVector(
+                std::stod(value("direction_x")),
+                std::stod(value("direction_y")),
+                std::stod(value("direction_z")));
+
+            const G4double norm = track.direction.mag();
+            if (!std::isfinite(norm) || norm <= 0.0)
+                throw std::runtime_error("invalid direction");
+            track.direction /= norm;
+            geometryPool.push_back(track);
+        } catch (const std::exception& error) {
+            G4ExceptionDescription message;
+            message << "Invalid geometry-pool row " << lineNumber
+                    << ": " << error.what();
+            G4Exception("G4PrimaryGeneratorAction::LoadGeometryPool",
+                        "MuonPool004", FatalException, message);
+            return;
+        }
+    }
+
+    if (geometryPool.empty()) {
+        G4Exception("G4PrimaryGeneratorAction::LoadGeometryPool",
+                    "MuonPool005", FatalException,
+                    "Muon geometry pool contains no tracks.");
+    }
 }
 
-// ========================================================================
+void G4PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
+    // Sample one complete row with replacement. Position and direction
+    // therefore always come from the same measured data track.
+    const std::size_t index = std::min(
+        static_cast<std::size_t>(G4UniformRand() * geometryPool.size()),
+        geometryPool.size() - 1);
+    const auto& track = geometryPool[index];
+
+    selectedTrackId = track.trackId;
+    selectedDataEventIndex = track.eventIndex;
+    selectedDataGroupId = track.groupId;
+
+    auto* muon = G4ParticleTable::GetParticleTable()->FindParticle("mu-");
+    if (!muon) {
+        G4Exception("G4PrimaryGeneratorAction::GeneratePrimaries",
+                    "MuonPool006", FatalException,
+                    "Could not find the mu- particle definition.");
+        return;
+    }
+
+    const G4double momentum = 10.0 * GeV;
+    const G4double mass = muon->GetPDGMass();
+    const G4double kineticEnergy =
+        std::sqrt(momentum * momentum + mass * mass) - mass;
+
+    particleGun->SetParticleDefinition(muon);
+    particleGun->SetParticlePosition(track.start);
+    particleGun->SetParticleMomentumDirection(track.direction);
+    particleGun->SetParticleEnergy(kineticEnergy);
+    particleGun->GeneratePrimaryVertex(event);
+
+    flag_alpha = true;
+}
+
+void G4PrimaryGeneratorAction::SetOptPhotonPolar() {
+    SetOptPhotonPolar(G4UniformRand() * 360.0 * deg);
+}
+
+void G4PrimaryGeneratorAction::SetOptPhotonPolar(G4double angle) {
+    if (particleGun->GetParticleDefinition()->GetParticleName()
+        != "opticalphoton") {
+        G4cout << "--> warning from PrimaryGeneratorAction::SetOptPhotonPolar(): "
+               << "the particleGun is not an opticalphoton" << G4endl;
+        return;
+    }
+
+    const G4ThreeVector normal(1., 0., 0.);
+    const G4ThreeVector direction =
+        particleGun->GetParticleMomentumDirection();
+    const G4ThreeVector product = normal.cross(direction);
+    const G4double modulus2 = product * product;
+
+    G4ThreeVector perpendicular(0., 0., 1.);
+    if (modulus2 > 0.) perpendicular = product / std::sqrt(modulus2);
+    const G4ThreeVector parallel = perpendicular.cross(direction);
+
+    particleGun->SetParticlePolarization(
+        std::cos(angle) * parallel + std::sin(angle) * perpendicular);
+}

@@ -25,10 +25,27 @@ void G4EventAction::BeginOfEventAction(const G4Event* /*event*/) {
     
     nOfReflections = 0;
     nOfDetections = 0;
+    ResetMuonTrack();
 }
 
 //================================================================================
 
+void G4EventAction::ResetMuonTrack() {
+    muonStart = G4ThreeVector(0,0,0);
+    muonEnd   = G4ThreeVector(0,0,0);
+    hasMuonTrack = false;
+}
+
+void G4EventAction::UpdateMuonTrack(const G4ThreeVector& prePos,
+                                    const G4ThreeVector& postPos) {
+    if (!hasMuonTrack) {
+        muonStart = prePos;
+        hasMuonTrack = true;
+    }
+
+    muonEnd = postPos;
+}
+//================================================================================
 void G4EventAction::EndOfEventAction(const G4Event* event) {
     
     // Print number of reflections
@@ -39,6 +56,8 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
     auto analysisManager = G4AnalysisManager::Instance();
 
     G4int eventID = event->GetEventID();
+    G4ThreeVector startPos = GetMuonStart();
+    G4ThreeVector endPos   = GetMuonEnd();
     G4int printModulo = G4RunManager::GetRunManager()->GetPrintProgress();
     if ( ( printModulo > 0 ) && ( eventID % printModulo == 0 ) ) {
         G4cout << "---> End of event: " << eventID << G4endl;
@@ -56,6 +75,18 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
             else if (volumeName == "Prisms_M1") volname = 0;
             else if (volumeName == "Prisms_M2") volname = 3;
             else if (volumeName == "Prisms_M3") volname = 1;
+
+            const G4int nPixelY = 280;
+            const G4int nPixelZ = 140;
+            const G4int pixelsPerIOGroup = nPixelY * nPixelZ;
+            const G4int plane = pixelID / pixelsPerIOGroup;
+            const G4int thresholdLocalKey = pixelID;
+            const G4int rem = pixelID % pixelsPerIOGroup;
+            const G4int pixelZ = rem % nPixelZ;
+            const G4int pixelY = rem / nPixelZ;
+            const G4int ioGroup = (volname >= 0 && plane >= 0 && plane < 2)
+                                      ? (2 * volname + plane + 1)
+                                      : -1;
             
             //primary pixel energy
             //secondary energy
@@ -90,16 +121,30 @@ void G4EventAction::EndOfEventAction(const G4Event* event) {
             analysisManager->FillNtupleIColumn(0, 0, eventID);
             analysisManager->FillNtupleIColumn(0, 1, pixelID);
             analysisManager->FillNtupleIColumn(0, 2, volname);
+
             analysisManager->FillNtupleDColumn(0, 3, energyDeposit / CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 4, primaryPixelEnergy/ CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 5, primaryOnlyEnergy/ CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 6, secondaryOnlyEnergy/ CLHEP::MeV);
-            analysisManager->FillNtupleDColumn(0, 7, x/CLHEP::cm);
-            analysisManager->FillNtupleDColumn(0, 8, y/CLHEP::cm);
-            analysisManager->FillNtupleDColumn(0, 9, z/CLHEP::cm);
-            
-            
-            analysisManager->AddNtupleRow(0);
+            analysisManager->FillNtupleDColumn(0, 4, primaryPixelEnergy / CLHEP::MeV);
+            analysisManager->FillNtupleDColumn(0, 5, primaryOnlyEnergy / CLHEP::MeV);
+            analysisManager->FillNtupleDColumn(0, 6, secondaryOnlyEnergy / CLHEP::MeV);
+
+            analysisManager->FillNtupleDColumn(0, 7, x / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 8, y / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0, 9, z / CLHEP::cm);
+
+            analysisManager->FillNtupleDColumn(0,10, startPos.x() / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0,11, startPos.y() / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0,12, startPos.z() / CLHEP::cm);
+
+            analysisManager->FillNtupleDColumn(0,13, endPos.x() / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0,14, endPos.y() / CLHEP::cm);
+            analysisManager->FillNtupleDColumn(0,15, endPos.z() / CLHEP::cm);
+
+            analysisManager->FillNtupleIColumn(0,16, ioGroup);
+            analysisManager->FillNtupleIColumn(0,17, plane);
+            analysisManager->FillNtupleIColumn(0,18, pixelY);
+            analysisManager->FillNtupleIColumn(0,19, pixelZ);
+            analysisManager->FillNtupleIColumn(0,20, thresholdLocalKey);
+            analysisManager->AddNtupleRow(0);            
         }
     }
 

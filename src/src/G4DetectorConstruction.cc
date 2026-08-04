@@ -37,6 +37,7 @@
     #include "G4VPhysicalVolume.hh"
     #include "G4TransportationManager.hh"
 
+    #include <cmath>
     #include <fstream>
     using namespace std;
 
@@ -61,10 +62,11 @@
         //VLAr_x =  GeoConf.sizeX * cm * 0.5;
         //VLAr_y =  GeoConf.sizeY * cm * 0.5;
         //VLAr_z =  GeoConf.sizeZ * cm * 0.5;
-        //height of one detector pixel
-        Pixel_x =  GeoConf.sizeX * cm * 0.5;
-        Pixel_y =  GeoConf.pixelSizeY * cm * 0.5;
-        Pixel_z =  GeoConf.pixelSizeZ * cm * 0.5;
+        // Pixel geometry is fixed in DefineVolumes() from the detector module
+        // dimensions and the real threshold-map indexing.
+        Pixel_x = 0.0;
+        Pixel_y = 0.0;
+        Pixel_z = 0.0;
 
 
     }
@@ -79,21 +81,31 @@
    
     class Full3DParameterisation : public G4VPVParameterisation {
     public:
-        Full3DParameterisation(G4int nY, G4int nZ, G4double pitchY, G4double pitchZ)
-            : fNY(nY), fNZ(nZ), fPitchY(pitchY), fPitchZ(pitchZ) {}
-        //initialized with nY,nZ ,pitchY and pitchZ
+        Full3DParameterisation(G4int nPlanes,
+                               G4int nY,
+                               G4int nZ,
+                               G4double pitchX,
+                               G4double pitchY,
+                               G4double pitchZ)
+            : fNPlanes(nPlanes),
+              fNY(nY),
+              fNZ(nZ),
+              fPitchX(pitchX),
+              fPitchY(pitchY),
+              fPitchZ(pitchZ) {}
+
         void ComputeTransformation(G4int copyNo, G4VPhysicalVolume* physVol) const override {
-        //create a 2d array with fnY rows and fnZ columns    
-            G4int iz = copyNo / fNY;
-            G4int iy = copyNo % fNY;
-        //center a grid arouind center
-        //place each volume at its center
-        //maintain consistent spacing
+            const G4int pixelsPerPlane = fNY * fNZ;
+            G4int plane = copyNo / pixelsPerPlane;
+            G4int rem = copyNo % pixelsPerPlane;
+            G4int iz = rem % fNZ;
+            G4int iy = rem / fNZ;
+
+            G4double x = (-fNPlanes/2.0 + plane + 0.5) * fPitchX;
             G4double y = (-fNY/2.0 + iy + 0.5) * fPitchY;
-            // G4double z = (-fNZ/2.0 + iz + 0.5) * fPitchZ;
             G4double z = (-fNZ/2.0 + iz + 0.5) * fPitchZ;
 
-            physVol->SetTranslation(G4ThreeVector(0., y, z));
+            physVol->SetTranslation(G4ThreeVector(x, y, z));
         }
 
         void ComputeDimensions(G4Box& box, G4int, const G4VPhysicalVolume*) const override {
@@ -101,8 +113,10 @@
         }
 
     private:
+        G4int fNPlanes;
         G4int fNY;
         G4int fNZ;
+        G4double fPitchX;
         G4double fPitchY;
         G4double fPitchZ;
     };
@@ -154,21 +168,43 @@
     //======================= Parametric volumes =======================
 
 
-        const G4double mod_half_x = 30.43 * cm;
-        const G4double mod_half_y = 61.85 * cm;
-        const G4double mod_half_z = 30.82 * cm;
+        const G4double mod_half_x = 30.4310 * cm;
+        const G4double mod_half_y = 61.8543 * cm;
+        const G4double mod_half_z = 30.8163 * cm;
 
-        const G4double cx = 33.5 * cm;
-        const G4double cz = 33.5 * cm;
+        const G4double cx = 33.5000 * cm;
+        const G4double cz = 33.5000 * cm;
 
-        G4double pitchY = Pixel_y * 2.0;
-        G4double pitchZ = Pixel_z * 2.0;
+        const G4int nPlanes = 2;
+        const G4int nY = 280;
+        const G4int nZ = 140;
+        const G4int pixelsPerPlane = nY * nZ;
+        const G4int nTotal = nPlanes * pixelsPerPlane;
 
-        G4int nY = std::floor((2.0 * mod_half_y) / pitchY);
-        G4int nZ = std::floor((2.0 * mod_half_z) / pitchZ);
-        G4int nTotal = nY * nZ;
+        G4double pitchX = (2.0 * mod_half_x) / nPlanes;
+        G4double pitchY = (2.0 * mod_half_y) / nY;
+        G4double pitchZ = (2.0 * mod_half_z) / nZ;
 
-        auto param = new Full3DParameterisation(nY, nZ, pitchY, pitchZ);
+        const G4double active_half_y = 0.5 * nY * pitchY;
+        const G4double active_half_z = 0.5 * nZ * pitchZ;
+
+        G4cout << "2x2 detector geometry:" << G4endl
+               << "  module centers: (+/-" << cx / cm << ", 0, +/-" << cz / cm << ") cm" << G4endl
+               << "  module half-size: x=" << mod_half_x / cm
+               << " cm, y=" << mod_half_y / cm
+               << " cm, z=" << mod_half_z / cm << " cm" << G4endl
+               << "  IO-group x pitch: " << pitchX / cm << " cm" << G4endl
+               << "  pixel pitch: y=" << pitchY / cm
+               << " cm, z=" << pitchZ / cm << " cm" << G4endl
+               << "  pixel grid per IO group: nY=" << nY
+               << ", nZ=" << nZ
+               << ", copies/IO group=" << pixelsPerPlane << G4endl
+               << "  IO groups per module=" << nPlanes
+               << ", copies/module=" << nTotal << G4endl
+               << "  active half-size from pixels: y=" << active_half_y / cm
+               << " cm, z=" << active_half_z / cm << " cm" << G4endl;
+
+        auto param = new Full3DParameterisation(nPlanes, nY, nZ, pitchX, pitchY, pitchZ);
     //G4int nY = VLAr_y/Pixel_y;
     //G4int nZ = VLAr_z/Pixel_z;
     //G4int nTotal = nY * nZ;//copy number from 0 to fnY*fnZ - 1    
@@ -176,7 +212,7 @@
     //G4float gapsize  = 35*cm;
     
     // Slice volume (same dimensions for all copies)
-    auto sliceSolid = new G4Box("Slice", Pixel_x, Pixel_y, Pixel_z);
+    auto sliceSolid = new G4Box("Slice", 0.5 * pitchX, 0.5 * pitchY, 0.5 * pitchZ);
     auto sliceLogic = new G4LogicalVolume(sliceSolid, LAr, "Slice");
     
     
